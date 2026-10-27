@@ -1,3 +1,18 @@
+# COMP6704 Group 7 · Grokking and the optimiser
+
+Fork of [ironjr/grokfast](https://github.com/ironjr/grokfast) used as the shared framework: x · y mod 97 (y ≠ 0), 2-layer transformer (width 128, 4 heads), 50% of the 9,312 equations for training. The original Grokfast README follows below.
+
+| Method | Owner | Docs |
+|---|---|---|
+| ⊥AdamW + StableMax | Eric Wang | branch `⊥AdamW`, [docs/orth_adamw.md](docs/orth_adamw.md) |
+| Lion | | |
+| EGD | | |
+| Adam + UNDO-style forgetting | | |
+
+To add an optimiser: put the class in `optim/`, register it in `optim/__init__.py`, and select it with `--optimizer <Name>`. Every run then logs the same metrics through `metrics.py` (fit / grok / sustained step, weight norm, spectral norm) to `results/`.
+
+---
+
 <div align="center">
 
 <h1>Grokfast: Accelerated Grokking by</br>Amplifying Slow Gradients</h1>

@@ -1,4 +1,7 @@
+import json
 import math
+import os
+import time
 from argparse import ArgumentParser
 from itertools import permutations
 import copy
@@ -11,6 +14,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from grokfast import *
+from losses import cross_entropy, softmax_collapse_fraction
+from metrics import grad_weight_cos, grok_summary, spectral_norm_max, weight_norm
+from optim import build_optimizer
 
 
 class Block(nn.Module):
@@ -90,7 +96,10 @@ def multiplication_mod_p_data(p, eq_token, op_token):
 def main(args):
     torch.manual_seed(args.seed)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if args.device == "auto":
+        args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(args.device)
+    os.makedirs("results", exist_ok=True)
 
     # tokens for <op> and <=>. It's not clear why <=> is needed at all since it
     # has no effect on the output, but we'll leave it in to best follow the
@@ -111,16 +120,23 @@ def main(args):
 
     data = multiplication_mod_p_data(args.p, eq_token, op_token)
 
-    train_idx, valid_idx = torch.randperm(data.shape[1]).split(data.shape[1] // 2)
+    n_train = int(round(args.train_frac * data.shape[1]))
+    perm = torch.randperm(data.shape[1])
+    train_idx, valid_idx = perm[:n_train], perm[n_train:]
     train_data, valid_data = data[:, train_idx], data[:, valid_idx]
 
     # For most experiments we used AdamW optimizer with learning rate 10−3,
     # weight decay 1, β1 = 0.9, β2 = 0.98
-    optimizer = getattr(torch.optim, args.optimizer)(
+    optimizer = build_optimizer(
+        args.optimizer,
         model.parameters(),
         lr=args.lr,
         weight_decay=args.weight_decay,
         betas=(args.beta1, args.beta2),
+        eps=args.adam_eps,
+        scope=args.orth_scope,
+        rescale=not args.orth_no_rescale,
+        skip_1d=args.orth_skip_1d,
     )
 
     #  linear learning rate warmup over the first 10 updates
@@ -137,16 +153,27 @@ def main(args):
     # For logging network weights.
     net_its, nets = [], []
 
+    # Per-epoch diagnostics, one JSON line every --log_every epochs.
+    log_f = open(f"results/log_{args.label}.jsonl", "w")
+    t_start = time.time()
+    above = 0  # consecutive epochs with val acc >= thresh, for --stop_after
+
     for e in tqdm(range(int(args.budget) // steps_per_epoch)):
 
         # randomly shuffle train data
         train_data = train_data[:, torch.randperm(train_data.shape[1])]
 
+        # diagnostics (cos(g, w), Softmax Collapse) only on epochs that get logged
+        last_epoch = e == int(args.budget) // steps_per_epoch - 1
+        diag = e % args.log_every == 0 or last_epoch
+
         for data, is_train in [(train_data, True), (valid_data, False)]:
 
             model.train(is_train)
-            total_loss = 0
-            total_acc = 0
+            # running sums stay on the device; one sync per epoch instead of several per step
+            total_loss = torch.zeros((), device=device, dtype=torch.float64)
+            total_acc = torch.zeros((), device=device, dtype=torch.float64)
+            cos_sum, sc_sum, n_batches = 0.0, 0.0, 0
 
             # torch.split faster than dataloader with tensor
             dl = torch.split(data, args.batch_size, dim=1)
@@ -156,8 +183,8 @@ def main(args):
                 with torch.set_grad_enabled(is_train):
                     logits = model(input[:-1])
                     # calculate loss only on the answer part of the equation (last element
-                    loss = F.cross_entropy(logits[-1], input[-1])
-                    total_loss += loss.item() * input.shape[-1]
+                    loss = cross_entropy(logits[-1], input[-1], kind=args.loss, dtype=args.loss_dtype)
+                    total_loss += loss.detach().double().to(device) * input.shape[-1]
 
                 if is_train:
                     model.zero_grad()
@@ -178,25 +205,45 @@ def main(args):
 
                     #######
 
+                    if diag:
+                        # measured for every optimiser, before any projection inside step()
+                        cos_sum += grad_weight_cos(model)
+                        sc_sum += softmax_collapse_fraction(logits[-1].detach(), input[-1])
+                        n_batches += 1
                     optimizer.step()
                     scheduler.step()
                     i += 1
 
-                acc = (logits[-1].argmax(-1) == input[-1]).float().mean()
-                total_acc += acc.item() * input.shape[-1]
+                total_acc += (logits[-1].argmax(-1) == input[-1]).double().sum()
 
+            total_loss, total_acc = total_loss.item(), total_acc.item()
             if is_train:
                 train_acc.append(total_acc / train_data.shape[-1])
                 train_loss.append(total_loss / train_data.shape[-1])
                 its.append(i)
+                epoch_cos, epoch_sc = cos_sum / max(n_batches, 1), sc_sum / max(n_batches, 1)
             else:
                 val_acc.append(total_acc / valid_data.shape[-1])
                 val_loss.append(total_loss / valid_data.shape[-1])
 
+        if diag:
+            log_f.write(json.dumps({
+                "epoch": e, "step": i,
+                "train_loss": train_loss[-1], "train_acc": train_acc[-1],
+                "val_loss": val_loss[-1], "val_acc": val_acc[-1],
+                "w_norm": weight_norm(model), "spec_norm_max": spectral_norm_max(model),
+                "cos_gw": epoch_cos, "softmax_collapse": epoch_sc,
+                "sec": time.time() - t_start,
+            }) + "\n")
+            log_f.flush()
+
+        above = above + 1 if val_acc[-1] >= args.thresh else 0
+        stop = args.stop_after > 0 and above >= args.stop_after
+
         if args.save_weights:
             do_save = e <= 500 or (e > 500 and (e + 1) % 100 == 0) or e == int(args.budget) // steps_per_epoch - 1
         else:
-            do_save = (e + 1) % 100 == 0
+            do_save = (e + 1) % 100 == 0 or stop
         if do_save:
             steps = torch.arange(len(train_acc)).numpy() * steps_per_epoch
             plt.plot(steps, train_acc, label="train")
@@ -237,6 +284,17 @@ def main(args):
 
             torch.save(results, f"results/res_{args.label}.pt")
 
+        if stop:
+            break
+
+    log_f.close()
+    summary = grok_summary(its, train_acc, val_acc, thresh=args.thresh)
+    summary.update({"label": args.label, "steps_run": i, "wall_sec": time.time() - t_start,
+                    "sec_per_step": (time.time() - t_start) / max(i, 1), "args": vars(args)})
+    with open(f"results/summary_{args.label}.json", "w") as f:
+        json.dump(summary, f, indent=2)
+    print(json.dumps({k: summary[k] for k in ("fit_step", "grok_step", "sustained_step", "delay", "final_val_acc")}))
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -260,6 +318,23 @@ if __name__ == "__main__":
     # Ablation studies
     parser.add_argument("--two_stage", action='store_true')
     parser.add_argument("--save_weights", action='store_true')
+
+    # Shared setup (Group 7)
+    parser.add_argument("--device", default="auto", help="auto, cuda, cuda:1, mps or cpu")
+    parser.add_argument("--train_frac", type=float, default=0.5)
+    parser.add_argument("--adam_eps", type=float, default=1e-8)
+    parser.add_argument("--thresh", type=float, default=0.99, help="accuracy that counts as fitted / grokked")
+    parser.add_argument("--log_every", type=int, default=10, help="epochs between JSON log lines")
+    parser.add_argument("--stop_after", type=int, default=0,
+                        help="stop once val acc has stayed >= thresh this many epochs (0 = run full budget)")
+    parser.add_argument("--raw_label", action="store_true", help="use --label as given, no automatic suffix")
+
+    # ⊥AdamW + StableMax (Prieto et al. 2025)
+    parser.add_argument("--loss", choices=["softmax", "stablemax"], default="softmax")
+    parser.add_argument("--loss_dtype", choices=["float16", "float32", "float64"], default="float32")
+    parser.add_argument("--orth_scope", choices=["tensor", "global"], default="tensor")
+    parser.add_argument("--orth_no_rescale", action="store_true")
+    parser.add_argument("--orth_skip_1d", action="store_true")
     args = parser.parse_args()
 
     filter_str = ('_' if args.label != '' else '') + args.filter
@@ -282,7 +357,8 @@ if __name__ == "__main__":
     if args.lr != 1e-3:
         optim_suffix = optim_suffix + f'_lrx{int(args.lr / 1e-3)}'
 
-    args.label = args.label + filter_str + filter_suffix + optim_suffix
+    if not args.raw_label:
+        args.label = args.label + filter_str + filter_suffix + optim_suffix
     print(f'Experiment results saved under name: {args.label}')
 
     main(args)
