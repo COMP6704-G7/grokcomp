@@ -63,7 +63,7 @@ Sustained step = test accuracy stays ≥ 99% from then on; ranges are over 3 see
 - **E0** reproduces the paper: ⊥AdamW groks the MLP by epoch 120 and the transformer by epoch 600 with no weight decay; AdamW + wd 1.5 needs 1,200; plain AdamW stays at 4%; StableMax alone reaches 98.5% after 80k epochs.
 - **E1** best lr = 3e-4: ⊥AdamW + StableMax (wd 0) sustained at 2,100–4,000 vs AdamW (wd 1) at 5,800–8,600, with the weight norm flat at ~122. At lr 1e-3 / 3e-3 the weight norm still grows (to 340 / ~2,100) and grokking becomes slow or unstable: Adam's per-coordinate scaling and the finite step size leak the update outward.
 - **E2** wd 0.1 is slightly faster (2,000–3,000). wd 1 groks fast but one seed collapses to chance (weights shrink to ~1): with the radial gradient removed nothing opposes the decay.
-- **E3** 70% data: sustained at 1,250–1,400. 30%: memorises by step ~700 but does not grok within 100k steps.
+- **E3** 70% data: sustained at 1,250–1,400. 30%: all 3 seeds memorise by step ~700 but none groks within 100k steps (test 9–14%).
 - **E4** ⊥ alone (softmax) groks (1,800–3,200); StableMax alone and plain AdamW do not (test ~41–50% at 100k). ⊥ + wd 1 collapses in 2/3 (softmax) and 1/3 (StableMax) seeds. Global projection (Eq. 12 literally) is much slower (48k–67k) than per-tensor; no-rescale fails 1/3; skipping 1-D params is slightly slower.
 
 The full write-up with figures is the Group project part of the course companion page.
