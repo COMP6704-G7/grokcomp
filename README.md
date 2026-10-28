@@ -1,284 +1,93 @@
-<div align="center">
+# Lion on Modular Multiplication — COMP6704 Group 7
 
-<h1>Grokfast: Accelerated Grokking by</br>Amplifying Slow Gradients</h1>
+The `Lion` branch contains HUANG Yuqi's Lion contribution to the group's **Deep Learning Optimizer Comparison** project. It includes a local Lion implementation, paired AdamW comparisons, complete metric logs, sensitivity and stability studies, and report/presentation material.
 
-[**Jaerin Lee**](http://jaerinlee.com/)\* · [**Bong Gyun Kang**](https://scholar.google.com/citations?hl=en&user=iuMRdnIAAAAJ)\* · [**Kihoon Kim**](https://github.com/kihoon96/) · [**Kyoung Mu Lee**](https://cv.snu.ac.kr/index.php/~kmlee/)
+The required member contribution is an independently implemented algorithm. The parameter update in [`lion_experiment/optim.py`](lion_experiment/optim.py) is implemented locally; it does not invoke a Lion library or the official reference. PyTorch supplies tensor operations and the optimizer interface. AdamW is the built-in comparison. The Google reference in `vendor/` is used only in correctness tests.
 
-<h5 align="center">Seoul National University</h5>
+## Main result and scope
 
-<p align="left">
-*Denotes equal contribution.
-</p>
+On mod-97 multiplication with the group's two-layer Transformer, Lion reached 95% validation accuracy in **3/3** fresh-seed runs; AdamW reached it in **0/3** within 10,000 updates. Both received three learning-rate trials on a separate tuning seed, with matched per-step weight shrinkage. This confirms a benefit **within a low-shrinkage regime identified by earlier exploration**.
 
+| Measurement | Lion | AdamW |
+|---|---:|---:|
+| Validation ≥95%, three consecutive evaluations | 3/3 | 0/3 |
+| First qualifying start, successful runs only | 4666.7 ± 378.6 steps | >10,000 in all runs |
+| Validation ≥99%, three consecutive evaluations | 2/3 | 0/3 |
+| Mean validation accuracy, steps 8100–10,000 | 98.76% | 41.84% |
+| Final validation accuracy | 98.86% | 41.64% |
+| Persistent optimizer state | 1.61 MiB | 3.23 MiB |
+| Total peak allocated GPU memory | 130.61 MiB | 132.22 MiB |
 
-[![Project](https://img.shields.io/badge/Project-Page-green)](https://jaerinlee.com/research/grokfast)
-[![ArXiv](https://img.shields.io/badge/Arxiv-2405.20233-red)](https://arxiv.org/abs/2405.20233)
-[![Github](https://img.shields.io/github/stars/ironjr/grokfast)](https://github.com/ironjr/grokfast)
-[![X](https://img.shields.io/twitter/url?label=_ironjr_&url=https%3A%2F%2Ftwitter.com%2F_ironjr_)](https://twitter.com/_ironjr_)
-[![HFPaper](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Paper-yellow)](https://huggingface.co/papers/2405.20233)
-[![LICENSE](https://img.shields.io/badge/license-MIT-lightgrey)](https://github.com/ironjr/grokfast/blob/main/LICENSE)
+Means and sample SD are descriptive over three seeds. Failed crossings are censored, not counted as successful at the budget. This is neither a universal ranking nor a significance claim. Both selected learning rates are at candidate-grid boundaries; longer budgets and wider searches could change the ranking. Validation data are used for tuning; these are validation results, not an independent test-set estimate.
 
-</div>
+![Paired validation and memory](results/advantage_validation/analysis/paired_accuracy_memory.png)
 
-**tl;dr:** We accelerate the [grokking phenomenon](https://arxiv.org/abs/2201.02177) by amplifying low-frequencies of the parameter gradients with an augmented optimizer.
+Earlier high-decay studies favored AdamW on first crossing and Lion on observed post-crossing stability. Those results remain in the repository; see [study history](docs/STUDY_HISTORY.md). See [all current results](results/advantage_validation/analysis/RESULTS.md) and [locked protocol](docs/ADVANTAGE_VALIDATION_PROTOCOL.md).
 
-![fig2](./assets/schematics.png) |  ![fig3](./assets/param_space.gif)  |
-:----------------------------: | :----------------------------: |
+## Install and check
 
-**Abstract:** 
-One puzzling artifact in machine learning dubbed *grokking* is where delayed generalization is achieved tenfolds of iterations after near perfect overfitting to the training data.
-Focusing on the long delay itself on behalf of machine learning practitioners, our goal is to accelerate generalization of a model under grokking phenomenon.
-By regarding a series of gradients of a parameter over training iterations as a random signal over time, we can spectrally decompose the parameter trajectories under gradient descent into two components: the fast-varying, overfitting-yielding component and the slow-varying, generalization-inducing component.
-This analysis allows us to accelerate the grokking phenomenon more than $\times$ 50 with only a few lines of code that amplifies the slow-varying components of gradients.
-The experiments show that our algorithm applies to diverse tasks involving images, languages, and graphs, enabling practical availability of this peculiar artifact of sudden generalization.
-
-![fig2](./assets/grokfast_ma_main.png) |  ![fig3](./assets/grokfast_ma_loss_main.png)  |
-:----------------------------: | :----------------------------: |
-
----
-
-## Usage
-
-### Installation
-
-Grokfast doesn't require additional packages except for [PyTorch](https://pytorch.org/get-started/locally/). The file `requirements.txt` is only for reproduction of the experiments in the article, as described in the [Reproduction](#reproduction) section below.
-
-### Instructions
-
-Grokfast can be applied by inserting a single line before the optimizer call.
-
-1. Download a single file `grokfast.py` from our repository.
-```bash
-wget https://raw.githubusercontent.com/ironjr/grokfast/main/grokfast.py
-```
-2. Import the helper function.
-```python
-from grokfast import gradfilter_ma, gradfilter_ema
-```
-3. Insert the following line **before** the training loop.
-```python
-grads = None
-```
-4. Between `loss.backward()` and `optimizer.step()`, insert one of the following line. Make sure `model` is of type `nn.Module` and `grads` are initialized properly before the training loop:
-```python
-# ... in the optimization loop.
-loss.backwards() # Calculate the gradients.
-
-### Option 1: Grokfast (has argument alpha, lamb)
-grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
-### Option 2: Grokfast-MA (has argument window_size, lamb)
-# grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
-
-optimizer.step() # Call the optimizer.
-# ... logging & other codes.
-```
-
-Done!
-
-<details>
-  
-<summary>(2-1) ...or, copy and paste the method directly into your code!</summary>
-
-```python
-### Imports
-from collections import deque
-from typing import Dict, Optional, Literal
-import torch
-import torch.nn as nn
-
-
-### Grokfast
-def gradfilter_ema(
-    m: nn.Module,
-    grads: Optional[Dict[str, torch.Tensor]] = None,
-    alpha: float = 0.99,
-    lamb: float = 5.0,
-) -> Dict[str, torch.Tensor]:
-    if grads is None:
-        grads = {n: p.grad.data.detach() for n, p in m.named_parameters() if p.requires_grad}
-
-    for n, p in m.named_parameters():
-        if p.requires_grad:
-            grads[n] = grads[n] * alpha + p.grad.data.detach() * (1 - alpha)
-            p.grad.data = p.grad.data + grads[n] * lamb
-
-    return grads
-
-
-### Grokfast-MA
-def gradfilter_ma(
-    m: nn.Module,
-    grads: Optional[Dict[str, deque]] = None,
-    window_size: int = 128,
-    lamb: float = 5.0,
-    filter_type: Literal['mean', 'sum'] = 'mean',
-    warmup: bool = True,
-    trigger: bool = False,
-) -> Dict[str, deque]:
-    if grads is None:
-        grads = {n: deque(maxlen=window_size) for n, p in m.named_parameters() if p.requires_grad}
-
-    for n, p in m.named_parameters():
-        if p.requires_grad:
-            grads[n].append(p.grad.data.detach())
-
-            if not warmup or len(grads[n]) == window_size and not trigger:
-                if filter_type == "mean":
-                    avg = sum(grads[n]) / len(grads[n])
-                elif filter_type == "sum":
-                    avg = sum(grads[n])
-                else:
-                    raise ValueError(f"Unrecognized filter_type {filter_type}")
-                p.grad.data = p.grad.data + avg * lamb
-
-    return grads
-```
-
-</details>
-
-### Arguments
-
-1. Grokfast (`gradfilter_ema`)
-
-    - `m: nn.Module`: Model that contains every trainable parameters.
-    - `grads: Optional[Dict[str, torch.Tensor]] = None`: Running memory (EMA). Initialize by setting it to `None`. Feed the output of the method recursively after on.
-    - `alpha: float = 0.98`: Momentum hyperparmeter of the EMA.
-    - `lamb: float = 2.0`: Amplifying factor hyperparameter of the filter.
-
-2. Grokfast-MA (`gradfilter_ma`)
-
-    - `m: nn.Module`: Model that contains every trainable parameters.
-    - `grads: Optional[Dict[str, deque]] = None`: Running memory (Queue for windowed moving average). Initialize by setting it to `None`. Feed the output of the method recursively after on.
-    - `window_size: int = 100`: The width of the filter window. Additional memory requirements increases linearly with respect to the windows size.
-    - `lamb: float = 5.0`: Amplifying factor hyperparameter of the filter.
-    - `filter_type: Literal['mean', 'sum'] = 'mean'`: Aggregation method for the running queue.
-    - `warmup: bool = True`: If true, filter is not applied until the queue is filled.
-    - `trigger: bool = False`:  For ablation study only. If true, the filter is simply not applied.
-
----
-
-## Reproduction
-
-We also note the additional computational resources required for each run. Time & memory costs are measured with a single GTX 1080 Ti GPU.
-
-### Installation
-
-This will install the additional packages to preprocess each data and to summarize the results. 
+Use Python 3.10. Run commands from this repository's root. Linux, PyTorch 2.5.1+cu124 and one A100 GPU were used for the reported measurements. CPU execution supports tests and smoke checks; timings and exact training trajectories can differ on other software/hardware.
 
 ```bash
-conda create -n grok python=3.10 && conda activate grok
-git clone https://github.com/ironjr/grokfast
-pip install -r requirements.txt
+git clone --branch Lion --single-branch git@github.com:COMP6704-G7/grokcomp.git
+cd grokcomp
+python3.10 -m venv .venv
+source .venv/bin/activate
+python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+python -m pip install -r requirements.txt
+python -m pytest -q
 ```
 
-### Algorithmic Data (Transformer decoder, *Grokfast-MA*)
-
-| Run | Iterations to Reach 95% Val. Acc. | Wall Clock Time to Reach 95% Val. Acc. (s) | VRAM Requirements (MB) | Latency Per Iteration (s) |
-| :-: | :-------------------------------: | :------------------------------------: | :--------------------: | :-----------------------: |
-| Baseline | 39890 | 5984 | 290 | 0.15 |
-| Grokfast-MA | 790 ($\times$ 50.49 $\downarrow$) | 292 ($\times$ 20.49 $\downarrow$) | 458 | 0.37 |
+For a CPU-only environment, replace `cu124` with `cpu` in the PyTorch install command. No external dataset download or access to the private reference repository is required.
 
 ```bash
-# python main.py --label test # Baseline.
-python main.py --label test --filter ma --window_size 100 --lamb 5.0 --weight_decay 0.01
+# Check the training path without a full GPU study.
+python -m lion_experiment.train --optimizer lion --device cpu \
+  --max-steps 5 --eval-every 5 --output runs/smoke_lion
+
+# Validate stored evidence, source hashes, split/initialization pairing and metrics.
+python scripts/verify_release.py
+
+# Regenerate tables and figures from the included logs; no training required.
+python scripts/analyze_advantage.py
 ```
 
-### Algorithmic Data (Transformer decoder, *Grokfast*)
+## Reproduce the main training study
 
-| Run | Iterations to Reach 95% Val. Acc. | Wall Clock Time to Reach 95% Val. Acc. (s) | VRAM Requirements (MB) | Latency Per Iteration (s) |
-| :-: | :-------------------------------: | :------------------------------------: | :--------------------: | :-----------------------: |
-| Baseline | 39890 | 5984 | $290 | 0.15 |
-| Grokfast | 910 ($\times$ 43.84 $\downarrow$) | 137 ($\times$ 43.79 $\downarrow$) | 294 | 0.15 |
+Always use a **new output directory** when rerunning. The archive in `results/` contains completed summaries; the runner resumes/skips completed runs there rather than retraining them.
 
 ```bash
-# python main.py --label test # Baseline.
-python main.py --label test --filter ema --alpha 0.98 --lamb 2.0 --weight_decay 0.005
+CUDA_VISIBLE_DEVICES=0 python scripts/confirm_advantage.py \
+  --config configs/advantage_validation.json \
+  --output runs/advantage_reproduction --stage all
+python scripts/analyze_advantage.py --root runs/advantage_reproduction
 ```
 
-### MNIST (MLP)
+This performs 12 sequential runs: six tuning runs on seed 7 and six confirmation runs on seeds 4–6, each exactly 10,000 updates. The runner writes the design lock before tuning, freezes selection before confirmation, and checks paired model initialization and data splits. It uses no early stopping. See [reproduction details and historical studies](docs/REPRODUCIBILITY.md).
 
-| Run | Iterations to Reach 95% Val. Acc. | Wall Clock Time to Reach 95% Val. Acc. (s) | VRAM Requirements (MB) | Latency Per Iteration (ms) |
-| :-: | :-------------------------------: | :------------------------------------: | :--------------------: | :------------------------: |
-| Baseline | 44022 | 1928 | 196 | 43.8 |
-| Grokfast | 2001 ($\times$ 22.00 $\downarrow$) | 87.8 ($\times$ 21.96 $\downarrow$) | 198 | 43.9 |
+Raw evidence is included as `metrics.jsonl`, `config.json`, `metadata.json`, and `summary.json` for each run, plus the design, selection evidence, source snapshots, CSV/JSON summaries and PNG/PDF figures. Full training checkpoints and environments are excluded; fresh training regenerates checkpoints. The small legacy `.pt` file contains metric histories, not model weights.
 
-```bash
-# python main_mnist.py --label test # Baseline.
-python main_mnist.py --label test --alpha 0.8 --lamb 0.1 --weight_decay 2.0
-```
+## Files and group handoff
 
-### IMDb (LSTM)
+| Path | Contents |
+|---|---|
+| `lion_experiment/optim.py` | Local Lion parameter/momentum updates |
+| `lion_experiment/model.py`, `train.py`, `metrics.py` | Shared model/data, paired training, threshold metrics |
+| `configs/advantage_validation.json` | Current fixed-horizon design and candidate grids |
+| `scripts/confirm_advantage.py`, `analyze_advantage.py` | Current experiment and analysis entry points |
+| `tests/`, `vendor/` | Independent arithmetic, official equivalence, protocol/resume tests |
+| `results/advantage_validation/` | All current tuning and confirmation evidence |
+| `results/lion_study/`, `matched_budget_study/`, `diagnostics/` | Historical comparisons and diagnostics |
+| [`docs/REQUIREMENTS_AUDIT.md`](docs/REQUIREMENTS_AUDIT.md) | Official group requirements mapped to this member's work |
+| [`docs/LION_CONTRIBUTION.md`](docs/LION_CONTRIBUTION.md) | Consolidated problem, algorithm, analysis and group report handoff |
+| [`deliverables/Lion_Contribution.pdf`](deliverables/Lion_Contribution.pdf) | Printable member contribution with repository link |
+| [`deliverables/Lion_优势验证展示.pptx`](deliverables/Lion_优势验证展示.pptx) | Six-slide result presentation |
+| [`deliverables/Lion_优势验证讲稿.md`](deliverables/Lion_优势验证讲稿.md) | Speaker notes |
 
-| Run | Best Validation Acc. | Minimum Validation Loss | VRAM Requirements (MB) | Latency Per Iteration (ms) |
-| :-: | :------------------: | :---------------------: | :--------------------: | :------------------------: |
-| Baseline | 0.84 | 0.517 | 754 | 20.4 |
-| Grokfast | 0.90 | 0.412 | 762 | 21.2 |
+The legacy `Lion_Report.*` and `Lion_Presentation.*` describe earlier studies; use the consolidated contribution and current result slides for handoff. This repository supplies the Lion portion, not the final combined group submission. The group must integrate its other independently implemented optimizers, unify any cross-member comparison, and prepare the final report/slides PDF. Include **https://github.com/COMP6704-G7/grokcomp/tree/Lion** in that report's abstract or a footnote, as required by the rubric.
 
-- Before training, download the IMDb dataset from [Google Drive](https://drive.google.com/file/d/11dNiqE5Y5tigaeyYP6JPV3xxa1MOu1L-/view?usp=sharing) or [Baidu Webdisk](https://pan.baidu.com/s/1kNDXlqPHxuDLtQWbdItwhw) (pw: vdp7).
+## Attribution
 
-```bash
-# python main_imdb.py --label test # Baseline.
-python main_imdb.py --label test --alpha 0.98 --lamb 2.0 --weight_decay 10.0
-```
+The group model and task derive from `COMP6704-G7/grokcomp` commit `93b2248e351d4bb9e4dda8ac32a6999b8970404b`, based on [ironjr/grokfast](https://github.com/ironjr/grokfast). An immutable original source is included for model/split equivalence tests. The inherited MIT notice is retained in [`LICENSE`](LICENSE); the official Lion reference retains its Apache-2.0 notice and [`vendor/LICENSE.lion`](vendor/LICENSE.lion). See [`docs/PROVENANCE.md`](docs/PROVENANCE.md). Lion is an existing algorithm, not an algorithm invented in this project.
 
-### QM9 (G-CNN)
-
-| Run | Minimum Validation Loss | VRAM Requirements (MB) | Latency Per Iteration (ms) |
-| :-: | :---------------------: | :--------------------: | :------------------------: |
-| Baseline | 0.00659 | 216 | 40.2 |
-| Grokfast | 0.00348 | 216 | 41.4 |
-
-```bash
-# python main_qm9.py --label test # Baseline.
-python main_qm9.py --label test --alpha 0.9 --lamb 1.0 --weight_decay 0.01
-```
-
----
-
-## FAQ
-
-### Choosing the right hyperparameters
-
-These recommendations are based on my experiences during the experiments shown in the main manuscript. This may not work perfectly to every other problems, and maybe more intelligent techniques can do better jobs than this procedure. So, please take these as one possible starting guidelines for designing your own filters.
-
-
-1. **Cutoff parameters**: The work uses MA/EMA filters to implement the filtering techniques. The cutoff frequency is determined by the _window size_ for the MA filter, and the _momentum parameter_ for the EMA filter.
-    1. **Roughly figure out the amount of acceleration you want to achieve.** For example, in the main manuscript, the cutoff parameters are determined based on the original grokking report, where experiments shows generalization happening X100 slower than overfitting. Therefore, we want *N=100* times faster acceleration.
-    2. **Set the pivotal values for the cutoff parameter search.** For MA, I started to set the window size of "w=N=100" and for EMA, I began with the momentum parameter alpha that satisfies "alpha^{N} = alpha^{100} = 0.1" (which is roughly alpha ~ 0.98).
-    3. **Perform hyperparameter search near the pivot values.** I swept across hyperparameter values near the values set in (1.b).
-3. **Weight decay**: The weight decay is set in the optimizer constructor as usual (e.g., `optimizer = optim.Adam(m.parameters(), weight_decay=wd)`).
-    1. **Start from the default weight decay of that task.** For example, the value chosen by the most widely used Github repository of that task.
-    2. **Fix the weight decay and try to find the optimal setting for the Grokfast filter parameters (momentum, window size, and amplitude) first.** Although weight decay do affect the values of the optimal filter parameters, its effect seems to be insignificant in my experiences.
-    3. **Start _increasing_ the weight decay value.** Start from X1 then try (X2, X5, X10). I couldn't get better results with X100 scale of the default value.
-
-
-## Acknowledgement
-
-Our code is heavily based on the following projects:
-- Ziming Liu et al., "Omnigrok: Grokking Beyond Algorithmic Data," ICLR 2023. [\[arXiv\]](https://arxiv.org/abs/2210.01117) [\[code\]](https://github.com/KindXiaoming/Omnigrok)
-- Alethea Power et al., "Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets," arXiv preprint arXiv:2201.02177. [\[arXiv\]](https://arxiv.org/abs/2201.02177) [\[code\]](https://github.com/openai/grok)
-- [@danielmamay](https://github.com/danielmamay)'s Re-implementation of Grokking. [\[code\]](https://github.com/danielmamay/grokking)
-
-Thank you all for providing useful references!
-
-
-## Citation
-
-Please cite us if you find our project useful!
-
-```latex
-@article{lee2024grokfast,
-    title={{Grokfast}: Accelerated Grokking by Amplifying Slow Gradients},
-    author={Lee, Jaerin and Kang, Bong Gyun and Kim, Kihoon and Lee, Kyoung Mu},
-    journal={arXiv preprint arXiv:2405.20233},
-    year={2024}
-}
-```
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ironjr/grokfast&type=Date)](https://star-history.com/#ironjr/grokfast&Date)
-
-## Contact
-
-If you have any questions, please email `jarin.lee@gmail.com`.
+The original Grokfast README is preserved in [README_GROKFAST.md](README_GROKFAST.md).

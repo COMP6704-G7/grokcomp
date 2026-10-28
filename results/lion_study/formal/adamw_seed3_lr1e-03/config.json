@@ -1,0 +1,48 @@
+{
+  "protocol": {
+    "p": 97,
+    "dim": 128,
+    "num_layers": 2,
+    "num_heads": 4,
+    "batch_size": 512,
+    "eval_every": 100,
+    "eval_batch_size": 512,
+    "max_steps": 100000,
+    "warmup_steps": 10,
+    "stop_at_99": true,
+    "consecutive": 3,
+    "split_protocol": "group_model_then_randperm",
+    "dtype": "float32",
+    "adamw_lr": 0.001,
+    "adamw_weight_decay": 1.0,
+    "adamw_betas": [
+      0.9,
+      0.98
+    ],
+    "lion_lrs": [
+      0.0001,
+      0.0002,
+      0.0003
+    ],
+    "lion_weight_decay": 5.0,
+    "lion_betas": [
+      0.9,
+      0.99
+    ],
+    "tuning_seed": 0,
+    "formal_seeds": [
+      1,
+      2,
+      3
+    ],
+    "checkpoint_every": 5000,
+    "cpu_threads": 4,
+    "tf32": false,
+    "deterministic": true
+  },
+  "optimizer": "adamw",
+  "lr": 0.001,
+  "seed": 3,
+  "phase": "formal",
+  "device": "cuda"
+}

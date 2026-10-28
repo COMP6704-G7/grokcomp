@@ -1,0 +1,10 @@
+{
+  "lion_primary_advantage_observed": true,
+  "tail_mean_accuracy_difference": 0.56919029209622,
+  "all_three_paired_tail_differences_positive": true,
+  "selected_at_grid_edge": {
+    "lion": true,
+    "adamw": true
+  },
+  "scope": "Three fresh seeds in the preselected low-shrinkage regime; not a universal or significance claim."
+}

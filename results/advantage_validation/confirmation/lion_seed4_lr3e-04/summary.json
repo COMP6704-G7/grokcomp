@@ -1,0 +1,37 @@
+{
+  "optimizer": "lion",
+  "lr": 0.0003,
+  "weight_decay": 0.03333333333333334,
+  "eta_lambda": 1e-05,
+  "seed": 4,
+  "phase": "advantage_confirmation",
+  "status": "success",
+  "steps": 10000,
+  "max_steps": 10000,
+  "wall_seconds": 64.0282905139029,
+  "training_seconds": 60.81102208793163,
+  "mean_step_ms": 6.081102208793164,
+  "peak_memory_bytes": 136949760,
+  "optimizer_state_bytes": 1691136,
+  "segments": 1,
+  "final_train_acc": 0.9995704467353952,
+  "final_val_acc": 0.9907646048109966,
+  "initial_weights_sha256": "e9a51ed9e782f811f2e9cdac369f3c8807e9c01c0ac98206367c6bf2da3f50cd",
+  "split_sha256": "bba51ca6c2601ccb53a24805913910c544c6f729707d07e02397ecb73e67132b",
+  "train99": {
+    "step": 500,
+    "wall_seconds": 3.1937321051955223,
+    "confirmed_step": 700
+  },
+  "val95": {
+    "step": 4400,
+    "wall_seconds": 27.914532009512186,
+    "confirmed_step": 4600
+  },
+  "val99": {
+    "step": 9800,
+    "wall_seconds": 62.60334064811468,
+    "confirmed_step": 10000
+  },
+  "generalization_delay": 9300
+}

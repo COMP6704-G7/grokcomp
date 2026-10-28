@@ -1,0 +1,12 @@
+{
+  "runs": [
+    "adamw_seed1_lr1e-03",
+    "adamw_seed2_lr1e-03",
+    "adamw_seed3_lr1e-03",
+    "lion_seed1_lr3e-04",
+    "lion_seed2_lr3e-04",
+    "lion_seed3_lr3e-04"
+  ],
+  "new_horizon": 10000,
+  "claim": "Checks only the original fixed-baseline comparison, not the supplementary tuned baseline"
+}

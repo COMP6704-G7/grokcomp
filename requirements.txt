@@ -1,8 +1,7 @@
-matplotlib
-torch
-torchvision
-torch_geometric
-pandas
-seaborn
-tqdm
-scipy
+# Tested with Python 3.10.21. For the recorded CUDA runtime, install torch first
+# using the cu124 index described in README.md.
+torch==2.5.1
+numpy==2.2.6
+matplotlib==3.10.9
+pytest==9.1.1
+tqdm==4.70.0

@@ -1,0 +1,10 @@
+{
+  "original_run": "results/lion_study/formal/lion_seed1_lr3e-04",
+  "original_stop_step": 1400,
+  "new_horizon": 10000,
+  "only_protocol_changes": {
+    "max_steps": 10000,
+    "stop_at_99": false
+  },
+  "note": "Preserves checkpoint weights, optimizer, scheduler, RNG and sampler; no LR/decay change. Timing has two segments."
+}

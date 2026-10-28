@@ -1,0 +1,83 @@
+{
+  "design": {
+    "study_name": "prospective_low_decay_advantage_validation",
+    "motivation": "Earlier seed0 diagnostic showed a prolonged generalization gap at low shrinkage; confirm on unseen seeds.",
+    "protocol": {
+      "p": 97,
+      "dim": 128,
+      "num_layers": 2,
+      "num_heads": 4,
+      "batch_size": 512,
+      "eval_every": 100,
+      "eval_batch_size": 512,
+      "max_steps": 10000,
+      "warmup_steps": 10,
+      "stop_at_99": false,
+      "consecutive": 3,
+      "split_protocol": "group_model_then_randperm",
+      "dtype": "float32",
+      "adamw_lr": 0.001,
+      "adamw_weight_decay": 0.01,
+      "adamw_betas": [
+        0.9,
+        0.98
+      ],
+      "lion_lrs": [
+        0.0001,
+        0.0002,
+        0.0003
+      ],
+      "lion_weight_decay": 0.05,
+      "lion_betas": [
+        0.9,
+        0.99
+      ],
+      "tuning_seed": 7,
+      "formal_seeds": [
+        4,
+        5,
+        6
+      ],
+      "checkpoint_every": 5000,
+      "cpu_threads": 4,
+      "tf32": false,
+      "deterministic": true
+    },
+    "tuning_seed": 7,
+    "confirmation_seeds": [
+      4,
+      5,
+      6
+    ],
+    "target_eta_lambda": 1e-05,
+    "candidates": {
+      "lion": [
+        0.0001,
+        0.0002,
+        0.0003
+      ],
+      "adamw": [
+        0.0005,
+        0.001,
+        0.002
+      ]
+    },
+    "weight_decay_rule": "weight_decay = target_eta_lambda / learning_rate for every candidate",
+    "selection_rule": "val95 success, earliest 3-checkpoint val95 start, higher mean val accuracy over last 2000 steps, higher final val accuracy, lower learning rate",
+    "primary_outcome": "val95 success rate by 10000 steps; first 3-checkpoint val95 starting step among successes, with failures censored",
+    "secondary_outcomes": [
+      "final validation accuracy",
+      "mean validation accuracy at steps 8100..10000",
+      "first 3-checkpoint val99 start",
+      "post-confirmation accuracy regressions",
+      "retrospective stable99 start through 10000",
+      "training step time",
+      "optimizer-state bytes"
+    ],
+    "scope": "Confirmation within a regime chosen from earlier exploratory diagnostics, not a universal optimizer ranking. Selection uses seed7 only; seeds4/5/6 are not used for selection.",
+    "timing": "One idle A100 GPU0; serial runs; alternate confirmation optimizer order by seed.",
+    "early_stopping": false
+  },
+  "locked_at": "2026-10-27T01:32:25.008765+08:00",
+  "design_sha256": "090dc53dfe419d13e88cbd65264bf94cf7d7128be0b6e5e0ecfb12a01b53928b"
+}

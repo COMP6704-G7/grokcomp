@@ -13,78 +13,8 @@ import torch.nn.functional as F
 from grokfast import *
 
 
-class Block(nn.Module):
-    """Causal transformer block
-    """
-
-    def __init__(self, dim, num_heads):
-        super().__init__()
-        self.ln_1 = nn.LayerNorm(dim)
-        self.ln_2 = nn.LayerNorm(dim)
-        self.attn = nn.MultiheadAttention(dim, num_heads)
-        self.mlp = nn.Sequential(
-            nn.Linear(dim, dim * 4),
-            nn.GELU(),
-            nn.Linear(dim * 4, dim),
-        )
-
-    def forward(self, x):
-        attn_mask = torch.full(
-            (len(x), len(x)), -float("Inf"), device=x.device, dtype=x.dtype
-        )
-        attn_mask = torch.triu(attn_mask, diagonal=1)
-        attn_mask[torch.isnan(attn_mask)] = 0.0 # fixes all 'nan' on 'mps' device
-
-        x = self.ln_1(x)
-        a, _ = self.attn(x, x, x, attn_mask=attn_mask, need_weights=False)
-        x = x + a
-        m = self.mlp(self.ln_2(x))
-        x = x + m
-        return x
-
-
-class Decoder(nn.Module):
-    """Causal Transformer decoder
-    """
-
-    def __init__(self, dim=128, num_layers=2, num_heads=4, num_tokens=97, seq_len=5):
-        super().__init__()
-        self.token_embeddings = nn.Embedding(num_tokens, dim)
-        self.position_embeddings = nn.Embedding(seq_len, dim)
-        self.layers = nn.ModuleList()
-        for _ in range(num_layers):
-            self.layers.append(Block(dim, num_heads))
-
-        self.ln_f = nn.LayerNorm(dim)
-        self.head = nn.Linear(dim, num_tokens, bias=False)
-
-    def forward(self, x):
-        h = self.token_embeddings(x)
-        positions = torch.arange(x.shape[0], device=x.device).unsqueeze(-1)
-        h = h + self.position_embeddings(positions).expand_as(h)
-        for layer in self.layers:
-            h = layer(h)
-
-        h = self.ln_f(h)
-        logits = self.head(h)
-        return logits
-
-
-def multiplication_mod_p_data(p, eq_token, op_token):
-    """x◦y = x/y (mod p) for 0 ≤ x < p, 0 < y < p
-    """
-    x = torch.arange(p)
-    y = torch.arange(1, p)
-    x, y = torch.cartesian_prod(x, y).T
-
-    eq = torch.ones_like(x) * eq_token
-    op = torch.ones_like(x) * op_token
-    result = x * y % p
-
-    # "All of our experiments used a small transformer trained on datasets of
-    # equations of the form a◦b = c, where each of “a”, “◦”, “b”, “=”, and “c”
-    # is a seperate token"
-    return torch.stack([x, op, y, eq, result])
+from lion_experiment.model import Block, Decoder, multiplication_mod_p_data
+from lion_experiment.optim import Lion
 
 
 def main(args):
@@ -116,7 +46,8 @@ def main(args):
 
     # For most experiments we used AdamW optimizer with learning rate 10−3,
     # weight decay 1, β1 = 0.9, β2 = 0.98
-    optimizer = getattr(torch.optim, args.optimizer)(
+    optimizer_class = Lion if args.optimizer.lower() == "lion" else getattr(torch.optim, args.optimizer)
+    optimizer = optimizer_class(
         model.parameters(),
         lr=args.lr,
         weight_decay=args.weight_decay,
@@ -247,7 +178,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=512)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--beta1", type=float, default=0.9)
-    parser.add_argument("--beta2", type=float, default=0.98)
+    parser.add_argument("--beta2", type=float, default=None,
+                        help="Defaults to 0.99 for Lion, 0.98 for the original optimizers")
     parser.add_argument("--weight_decay", type=float, default=0)
     parser.add_argument("--optimizer", default="Adam")
 
@@ -261,6 +193,8 @@ if __name__ == "__main__":
     parser.add_argument("--two_stage", action='store_true')
     parser.add_argument("--save_weights", action='store_true')
     args = parser.parse_args()
+    if args.beta2 is None:
+        args.beta2 = 0.99 if args.optimizer.lower() == "lion" else 0.98
 
     filter_str = ('_' if args.label != '' else '') + args.filter
     window_size_str = f'_w{args.window_size}'

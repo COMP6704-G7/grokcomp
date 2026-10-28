@@ -1,0 +1,12 @@
+{
+  "source_repository": "git@github.com:COMP6704-G7/grokcomp.git",
+  "source_commit": "93b2248e351d4bb9e4dda8ac32a6999b8970404b",
+  "original_group_main_sha256": "8fb0936d046f6b4d345fb8b86c63d6d64301cf4cc2025dbab1e568f0f4b572bd",
+  "training_package_unchanged": true,
+  "release_repository": "https://github.com/COMP6704-G7/grokcomp",
+  "release_date": "2026-10-28",
+  "release_branch": "Lion",
+  "release_url": "https://github.com/COMP6704-G7/grokcomp/tree/Lion",
+  "previous_release_repository": "https://github.com/COMP6704-G7/Lion_HuangYuqi",
+  "previous_release_commit": "9e00d69736bb76f9ee4861da8fb8bddfd7e12ff3"
+}

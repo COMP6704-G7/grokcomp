@@ -1,0 +1,25 @@
+[
+  {
+    "argv": [
+      "--optimizer",
+      "Lion"
+    ],
+    "beta2": 0.99
+  },
+  {
+    "argv": [
+      "--optimizer",
+      "Adam"
+    ],
+    "beta2": 0.98
+  },
+  {
+    "argv": [
+      "--optimizer",
+      "Lion",
+      "--beta2",
+      ".97"
+    ],
+    "beta2": 0.97
+  }
+]

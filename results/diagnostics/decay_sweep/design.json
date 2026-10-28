@@ -1,0 +1,15 @@
+{
+  "seed": 0,
+  "steps": 10000,
+  "adamw_lr": 0.001,
+  "lion_lr": 0.0002,
+  "reference_adamw_decays": [
+    1.0,
+    0.1,
+    0.01,
+    0.0
+  ],
+  "lion_decay_multiplier": 5,
+  "early_stopping": false,
+  "purpose": "Vary decay only within each optimizer; matched peak eta*lambda between optimizers"
+}

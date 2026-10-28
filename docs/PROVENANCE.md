@@ -1,0 +1,15 @@
+# Source and release provenance
+
+The working study was developed in a checkout of `git@github.com:COMP6704-G7/grokcomp.git`, at parent commit `93b2248e351d4bb9e4dda8ac32a6999b8970404b`. This release is organized on the `Lion` branch of `COMP6704-G7/grokcomp`, based on that original commit. An earlier standalone copy was published in `COMP6704-G7/Lion_HuangYuqi`; the original local experiment checkout and checkpoints are preserved. The root `README_GROKFAST.md` preserves the original README.
+
+- `lion_experiment/optim.py`: local implementation of published Lion updates, using PyTorch's optimizer state/group interface. Training does not import `vendor/lion_official.py`.
+- `lion_experiment/model.py`: model and multiplication task extracted from the group source, including its original normalization/residual order and 99-class output head. An inherited dataset docstring says division; the actual generated targets and tests implement multiplication. Source bytes are retained to match the measured runs.
+- `results/diagnostics/source_snapshot/group_main_93b2248.py`: immutable original group entry point, used by equivalence tests without requiring private repository access or Git history.
+- Original code is based on [ironjr/grokfast](https://github.com/ironjr/grokfast), Copyright 2024 Jaerin Lee, MIT. `LICENSE` retains this notice; `grokfast.py` is retained solely to permit original-script reproduction. The new comparative training does not use Grokfast filters.
+- `vendor/lion_official.py`: unmodified Google Apache-2.0 reference, used only by tests. Its origin and SHA-256 are in `vendor/lion_official.provenance.json`; the license is `vendor/LICENSE.lion`.
+
+The combined SHA-256 of the seven `lion_experiment/*.py` files is `94916a7abbd609fb771061db1b0e49150bbe77f876ef53840c44419f5f8615be`, unchanged from recorded experiments. The combination hashes sorted file names followed by their bytes. Individual hashes are in `SOURCE_MANIFEST.json`; run metadata and the current study audit manifest independently retain the same digest. Historical `git_revision` fields refer to the experiment's parent repository, not this release's first commit.
+
+Release-only edits remove a test's dependency on `git show HEAD:main.py`, make original-script reproduction use the shipped snapshot, create an output directory for document generation, and add documentation, an evidence verifier and a contribution exporter. Historical measured JSONL logs, locked design, frozen selection and core training code are copied unchanged. Historical symlinked Lion results in `matched_budget_study/` are materialized as identical files so downloads work without symlink support. Checkpoints, caches and environments are excluded. The small legacy metric-history `.pt` file is retained.
+
+The published algorithm is attributed to Chen et al.; the contribution is its implementation, validation and controlled empirical comparison. Shared model code and the official test reference are not claimed as independently invented work.

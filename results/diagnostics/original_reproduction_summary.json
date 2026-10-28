@@ -1,0 +1,10 @@
+{
+  "optimizer": "Adam",
+  "weight_decay": 0,
+  "steps": 50000,
+  "train_acc": 0.9963487972508591,
+  "val_acc": 0.8784364265264925,
+  "first_val95": null,
+  "first_val99": null,
+  "note": "Original training accuracy is accumulated over changing weights during an epoch; not a synchronized train metric"
+}

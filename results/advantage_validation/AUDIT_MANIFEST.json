@@ -1,0 +1,24 @@
+{
+  "completed_runs": 12,
+  "total_updates": 120000,
+  "experiment_source_sha256": "94916a7abbd609fb771061db1b0e49150bbe77f876ef53840c44419f5f8615be",
+  "tests_passed": 15,
+  "per_run_logs": {
+    "results/advantage_validation/confirmation/adamw_seed4_lr5e-04/metrics.jsonl": "c5f94f1cd20336a8d4b8388362560f04abfa6971a225318b35f54938157f166d",
+    "results/advantage_validation/confirmation/adamw_seed5_lr5e-04/metrics.jsonl": "539dfd3a8a15afec1bda37072984f7d879b25da76faae785455a7d7564993d6d",
+    "results/advantage_validation/confirmation/adamw_seed6_lr5e-04/metrics.jsonl": "1ec2e171050c92b85df8f1250f8ea252bb64144125f0a010436baf1729abcc07",
+    "results/advantage_validation/confirmation/lion_seed4_lr3e-04/metrics.jsonl": "a233785964ce5dc36f58d5afdcc0ed132b9263b4bc7e78b5472ad15bb206ac3a",
+    "results/advantage_validation/confirmation/lion_seed5_lr3e-04/metrics.jsonl": "e291d5691435dad96ce3c8e84c808ea1e65d996dd713baef8780633fc0e73ca7",
+    "results/advantage_validation/confirmation/lion_seed6_lr3e-04/metrics.jsonl": "62d84d45b6af0ea80d4defa09eaade313ee167d29e31b15b9a4536bc4c658e55",
+    "results/advantage_validation/tuning/adamw_seed7_lr1e-03/metrics.jsonl": "fbbe9607eaa40d7f2ec18a2fcbacf4abc72cd59c2c1c977a751bd4bcf2f34483",
+    "results/advantage_validation/tuning/adamw_seed7_lr2e-03/metrics.jsonl": "2acf9b26392513b74201bbe3ebfc659876e88b0586d3d6dd0c69d7c6fa5533e9",
+    "results/advantage_validation/tuning/adamw_seed7_lr5e-04/metrics.jsonl": "0d3899c9b44c3db0147bb929278450b2449f1dcc20d12d2d3e29bca58e697d5a",
+    "results/advantage_validation/tuning/lion_seed7_lr1e-04/metrics.jsonl": "07f8db557c2e1306c9f8b6f7306dbbf2310ae9d780677217ec62e04ecd617ae9",
+    "results/advantage_validation/tuning/lion_seed7_lr2e-04/metrics.jsonl": "800a6beda443839096d8a689567cf0c170ad3f21194a4f556ad9a38dfa9a2d5e",
+    "results/advantage_validation/tuning/lion_seed7_lr3e-04/metrics.jsonl": "31a6cdfa61c3a6f4a4eb6cfa8149edbe34c2b85b9d072e7f8d571b2abe9dcf15"
+  },
+  "design_locked_sha256": "f66081e4fc712c5fc7508ac61e05de2705a56ea5d2e1e2f23b339b883ab33370",
+  "frozen_selection_sha256": "2e58cde35eb25ad648d700ed1d31d41befec818c5f1f3fa21a59da0380067936",
+  "runner_sha256": "8c734e80af03eaa76892dc9211d3eadeae8a3265b12b1803ce7943cc65dc6437",
+  "analysis_sha256": "24a38725711b8d86c47765f473b3eb74de2044ce0c50cab61b16c8fe3a730b7d"
+}

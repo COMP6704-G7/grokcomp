@@ -1,0 +1,124 @@
+[
+  {
+    "optimizer": "lion",
+    "n": 3,
+    "val95_successes": 3,
+    "val99_successes": 2,
+    "Tval95": {
+      "n": 3,
+      "mean": 4666.666666666667,
+      "std": 378.59388972001824
+    },
+    "Tval95_wall_seconds": {
+      "n": 3,
+      "mean": 29.81879381959637,
+      "std": 2.1971846041610874
+    },
+    "Tval99": {
+      "n": 2,
+      "mean": 8850,
+      "std": 1343.5028842544402
+    },
+    "Ttrain99": {
+      "n": 3,
+      "mean": 500,
+      "std": 0.0
+    },
+    "delay": {
+      "n": 2,
+      "mean": 8350,
+      "std": 1343.5028842544402
+    },
+    "stable99_within_10000": {
+      "n": 1,
+      "mean": 9800,
+      "std": null
+    },
+    "final_val_acc": {
+      "n": 3,
+      "mean": 0.9886168384879725,
+      "std": 0.0018723792712803515
+    },
+    "tail_mean_val_acc": {
+      "n": 3,
+      "mean": 0.9875715922107675,
+      "std": 0.0009863564712829938
+    },
+    "mean_step_ms": {
+      "n": 3,
+      "mean": 6.152757894496123,
+      "std": 0.19223777188899838
+    },
+    "optimizer_state_bytes": {
+      "n": 3,
+      "mean": 1691136,
+      "std": 0.0
+    },
+    "peak_memory_bytes": {
+      "n": 3,
+      "mean": 136949760,
+      "std": 0.0
+    }
+  },
+  {
+    "optimizer": "adamw",
+    "n": 3,
+    "val95_successes": 0,
+    "val99_successes": 0,
+    "Tval95": {
+      "n": 0,
+      "mean": null,
+      "std": null
+    },
+    "Tval95_wall_seconds": {
+      "n": 0,
+      "mean": null,
+      "std": null
+    },
+    "Tval99": {
+      "n": 0,
+      "mean": null,
+      "std": null
+    },
+    "Ttrain99": {
+      "n": 3,
+      "mean": 700,
+      "std": 0.0
+    },
+    "delay": {
+      "n": 0,
+      "mean": null,
+      "std": null
+    },
+    "stable99_within_10000": {
+      "n": 0,
+      "mean": null,
+      "std": null
+    },
+    "final_val_acc": {
+      "n": 3,
+      "mean": 0.4163802978235968,
+      "std": 0.03402453240066905
+    },
+    "tail_mean_val_acc": {
+      "n": 3,
+      "mean": 0.41838130011454755,
+      "std": 0.036780052003546664
+    },
+    "mean_step_ms": {
+      "n": 3,
+      "mean": 6.544830274581909,
+      "std": 0.2819482268286966
+    },
+    "optimizer_state_bytes": {
+      "n": 3,
+      "mean": 3382388,
+      "std": 0.0
+    },
+    "peak_memory_bytes": {
+      "n": 3,
+      "mean": 138640896,
+      "std": 0.0
+    }
+  }
+]

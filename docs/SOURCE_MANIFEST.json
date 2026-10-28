@@ -1,0 +1,12 @@
+{
+  "experiment_source_sha256": "94916a7abbd609fb771061db1b0e49150bbe77f876ef53840c44419f5f8615be",
+  "files": {
+    "lion_experiment/__init__.py": "4db65a2e5428b5ed9332094b8d2045e863bba9db9d5b412f0281525b3cff1bf3",
+    "lion_experiment/analyze.py": "b9d12f4ea56c6cc3fe9e185f1d830b68e6f4ee827db5e693d35544086cfe564b",
+    "lion_experiment/metrics.py": "9260c24148d93e4cb6d3848a17702096d840efe1248920109ad4032bc2e660b7",
+    "lion_experiment/model.py": "4e7b2558b1ef40947622f870dd987fe4e231fa892f29ce8412e59b3a99b164ad",
+    "lion_experiment/optim.py": "8d2ee98164b4f262478b53cf3d6f261ad7fd3299a7fd68bb1ab5ec74ca96cc26",
+    "lion_experiment/suite.py": "3966d3484f6df07df0d48b2c6144e5736e4e01ffb72f904db7ad6006d09d73a8",
+    "lion_experiment/train.py": "f50b7fdefd604d8d996aa7ea45a7c1c7d3a86d9a1da28b2c4ada44d9bbb98b26"
+  }
+}

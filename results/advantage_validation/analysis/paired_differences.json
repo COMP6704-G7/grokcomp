@@ -1,0 +1,20 @@
+[
+  {
+    "seed": 4,
+    "tail_accuracy_lion_minus_adamw": 0.6011060996563575,
+    "final_accuracy_lion_minus_adamw": 0.5786082474226805,
+    "val95_step_lion_minus_adamw": null
+  },
+  {
+    "seed": 5,
+    "tail_accuracy_lion_minus_adamw": 0.5304660652920963,
+    "final_accuracy_lion_minus_adamw": 0.5350085910652922,
+    "val95_step_lion_minus_adamw": null
+  },
+  {
+    "seed": 6,
+    "tail_accuracy_lion_minus_adamw": 0.5759987113402061,
+    "final_accuracy_lion_minus_adamw": 0.6030927835051547,
+    "val95_step_lion_minus_adamw": null
+  }
+]

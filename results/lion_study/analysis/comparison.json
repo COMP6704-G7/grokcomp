@@ -1,0 +1,106 @@
+[
+  {
+    "optimizer": "lion",
+    "n": 3,
+    "val95_successes": 3,
+    "val99_successes": 3,
+    "val99_success_rate": 1.0,
+    "train99_step": {
+      "n": 3,
+      "mean": 1200,
+      "std": 100.0
+    },
+    "val95_step": {
+      "n": 3,
+      "mean": 1433.3333333333333,
+      "std": 288.67513459481285
+    },
+    "val99_step": {
+      "n": 3,
+      "mean": 1566.6666666666667,
+      "std": 321.4550253664318
+    },
+    "val99_wall_seconds": {
+      "n": 3,
+      "mean": 10.525851510465145,
+      "std": 2.4768532308574254
+    },
+    "generalization_delay": {
+      "n": 3,
+      "mean": 366.6666666666667,
+      "std": 230.9401076758503
+    },
+    "mean_step_ms": {
+      "n": 3,
+      "mean": 6.342399305871742,
+      "std": 0.2413796130424408
+    },
+    "peak_memory_bytes": {
+      "n": 3,
+      "mean": 136949760,
+      "std": 0.0
+    },
+    "optimizer_state_bytes": {
+      "n": 3,
+      "mean": 1691136,
+      "std": 0.0
+    },
+    "final_val_acc": {
+      "n": 3,
+      "mean": 0.9993556701030928,
+      "std": 0.0007743881605377956
+    }
+  },
+  {
+    "optimizer": "adamw",
+    "n": 3,
+    "val95_successes": 3,
+    "val99_successes": 3,
+    "val99_success_rate": 1.0,
+    "train99_step": {
+      "n": 3,
+      "mean": 500,
+      "std": 0.0
+    },
+    "val95_step": {
+      "n": 3,
+      "mean": 1333.3333333333333,
+      "std": 152.75252316519467
+    },
+    "val99_step": {
+      "n": 3,
+      "mean": 1366.6666666666667,
+      "std": 152.75252316519467
+    },
+    "val99_wall_seconds": {
+      "n": 3,
+      "mean": 9.573130436241627,
+      "std": 1.2610287237604896
+    },
+    "generalization_delay": {
+      "n": 3,
+      "mean": 866.6666666666666,
+      "std": 152.75252316519467
+    },
+    "mean_step_ms": {
+      "n": 3,
+      "mean": 6.673321439049804,
+      "std": 0.2783833336925534
+    },
+    "peak_memory_bytes": {
+      "n": 3,
+      "mean": 138640896,
+      "std": 0.0
+    },
+    "optimizer_state_bytes": {
+      "n": 3,
+      "mean": 3382388,
+      "std": 0.0
+    },
+    "final_val_acc": {
+      "n": 3,
+      "mean": 0.9999284077892325,
+      "std": 0.00012400134647543465
+    }
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "optimizer": "adamw",
+  "lr": 0.001,
+  "weight_decay": 1.0,
+  "eta_lambda": 0.001,
+  "seed": 1,
+  "phase": "formal",
+  "status": "success",
+  "steps": 1700,
+  "max_steps": 100000,
+  "wall_seconds": 11.88870995119214,
+  "training_seconds": 11.2963532730937,
+  "mean_step_ms": 6.644913690055118,
+  "peak_memory_bytes": 138640896,
+  "optimizer_state_bytes": 3382388,
+  "segments": 1,
+  "final_train_acc": 1.0,
+  "final_val_acc": 0.9997852233676976,
+  "initial_weights_sha256": "48bc85de40f909782ce02299b2c69f24f76fb827279ea60bba45d586d571b767",
+  "split_sha256": "5f4fb50f6d0128d39102315247b38219481c00af4368670fcf0c8fd819a09b5b",
+  "train99": {
+    "step": 500,
+    "wall_seconds": 3.4323582611978054,
+    "confirmed_step": 700
+  },
+  "val95": {
+    "step": 1500,
+    "wall_seconds": 10.394221358001232,
+    "confirmed_step": 1700
+  },
+  "val99": {
+    "step": 1500,
+    "wall_seconds": 10.394221358001232,
+    "confirmed_step": 1700
+  },
+  "generalization_delay": 1000
+}

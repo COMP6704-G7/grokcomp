@@ -1,0 +1,5 @@
+# Python's CSV writer emits CRLF; keep the archived files without false warnings.
+*.csv whitespace=cr-at-eol
+# Preserve the exact measured model source, including its inherited final blank.
+lion_experiment/model.py whitespace=-blank-at-eof
+results/diagnostics/source_snapshot/model.py whitespace=-blank-at-eof

@@ -1,0 +1,21 @@
+{
+  "original_source_sha256": "8fb0936d046f6b4d345fb8b86c63d6d64301cf4cc2025dbab1e568f0f4b572bd",
+  "experiment_source_sha256": "94916a7abbd609fb771061db1b0e49150bbe77f876ef53840c44419f5f8615be",
+  "decay_runs": 8,
+  "continued_formal_runs": 6,
+  "original_reproduction_steps": 50000,
+  "tests_passed": 11,
+  "note": "Continuation prefix, configuration, environment and identity checks are enforced by analyze_stability.py",
+  "main_cli_sha256": "6eaec4a1c78e92d368fb35bd056398da8e151b173e59e744dcfc16fa9cad66fc",
+  "scripts": {
+    "scripts/analyze_diagnostics.py": "826ecf4c4fbaa569859c8155ae4441328aa69a897e8ea5f1c2700b8c4a8cb238",
+    "scripts/analyze_stability.py": "5e1447f56ee26f5d3e565b90858cf8efc18752137f1f60fb17d6b2d1e97a300a",
+    "scripts/audit_training.py": "0cc9f3253859ee311c4076a402ca4c92e20b296609c0a49c27fcaeb0ce9ebe96",
+    "scripts/build_deliverables.py": "30bdd5f00bd913c1223096097ef4f7b9a0ad5d7e8426b998db9fb35faefe0583",
+    "scripts/build_diagnosis_note.py": "841c485eed17fa4530a78be4406fb5099618839a4ea219bf6ed1b950498341ed",
+    "scripts/continue_stability.py": "5833b80037a3c2062bae0f65e75ddc52cb5f637c826bc0ea02bf7fed0ceaefae",
+    "scripts/decay_diagnostics.py": "5526e13da60811de1815e1d6f6e68477191077790a050ae7aac5682b188cbf46",
+    "scripts/matched_budget.py": "c82c822ded2686de1e25bfcf651b7730bfdddb77cc3124a7f9ec90c75ab3988a",
+    "scripts/reproduce_original.py": "7694bff9ba749fd6a3bf1466fe04097d06ccf65414cb08ff30e813f197fd2650"
+  }
+}
