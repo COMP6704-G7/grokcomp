@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from grokfast import *
+from fpd import FPD, add_args, label_suffix
 
 
 class Block(nn.Module):
@@ -114,9 +115,11 @@ def main(args):
     train_idx, valid_idx = torch.randperm(data.shape[1]).split(data.shape[1] // 2)
     train_data, valid_data = data[:, train_idx], data[:, valid_idx]
 
+    fpd = FPD(model, train_data, args)
+
     # For most experiments we used AdamW optimizer with learning rate 10−3,
     # weight decay 1, β1 = 0.9, β2 = 0.98
-    optimizer = getattr(torch.optim, args.optimizer)(
+    optimizer = getattr(torch.optim, fpd.base_optimizer)(
         model.parameters(),
         lr=args.lr,
         weight_decay=args.weight_decay,
@@ -181,6 +184,7 @@ def main(args):
                     optimizer.step()
                     scheduler.step()
                     i += 1
+                    fpd.step(i, train_acc)
 
                 acc = (logits[-1].argmax(-1) == input[-1]).float().mean()
                 total_acc += acc.item() * input.shape[-1]
@@ -193,11 +197,12 @@ def main(args):
                 val_acc.append(total_acc / valid_data.shape[-1])
                 val_loss.append(total_loss / valid_data.shape[-1])
 
+        stop = fpd.should_stop(val_acc)
         if args.save_weights:
             do_save = e <= 500 or (e > 500 and (e + 1) % 100 == 0) or e == int(args.budget) // steps_per_epoch - 1
         else:
             do_save = (e + 1) % 100 == 0
-        if do_save:
+        if do_save or stop:
             steps = torch.arange(len(train_acc)).numpy() * steps_per_epoch
             plt.plot(steps, train_acc, label="train")
             plt.plot(steps, val_acc, label="val")
@@ -227,6 +232,7 @@ def main(args):
                 'train_loss': train_loss,
                 'val_acc': val_acc,
                 'val_loss': val_loss,
+                'fpd': fpd.history,
             }
 
             if args.save_weights:
@@ -236,6 +242,9 @@ def main(args):
                 results['net'] = nets
 
             torch.save(results, f"results/res_{args.label}.pt")
+
+        if stop:
+            break
 
 
 if __name__ == "__main__":
@@ -260,6 +269,7 @@ if __name__ == "__main__":
     # Ablation studies
     parser.add_argument("--two_stage", action='store_true')
     parser.add_argument("--save_weights", action='store_true')
+    add_args(parser)
     args = parser.parse_args()
 
     filter_str = ('_' if args.label != '' else '') + args.filter
@@ -282,7 +292,7 @@ if __name__ == "__main__":
     if args.lr != 1e-3:
         optim_suffix = optim_suffix + f'_lrx{int(args.lr / 1e-3)}'
 
-    args.label = args.label + filter_str + filter_suffix + optim_suffix
+    args.label = args.label + filter_str + filter_suffix + optim_suffix + label_suffix(args)
     print(f'Experiment results saved under name: {args.label}')
 
     main(args)
