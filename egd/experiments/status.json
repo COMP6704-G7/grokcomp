@@ -1,0 +1,42 @@
+{
+  "plan": "COMP6704 EGD Experimental Plan",
+  "updated": "2026-11-05T17:30",
+  "progress": "6/6 done",
+  "checklist": [
+    {
+      "id": 1,
+      "item": "Exp1 P0 Modular Addition p=97",
+      "status": "done"
+    },
+    {
+      "id": 2,
+      "item": "Exp3 P0 Computational Efficiency",
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "item": "Exp1 P1 p=79,127",
+      "status": "done"
+    },
+    {
+      "id": 4,
+      "item": "Exp2 Sparse Parity k=2,3,4",
+      "status": "done"
+    },
+    {
+      "id": 5,
+      "item": "Exp4 RSVD rank ablation",
+      "status": "done"
+    },
+    {
+      "id": 6,
+      "item": "Figures 1-4 + summary tables",
+      "status": "done"
+    }
+  ],
+  "artifacts": {
+    "results": "experiments/results/*.json",
+    "figures": "experiments/figures/fig{1,2,3,4}_*.{png,pdf}",
+    "tables": "experiments/figures/summary_tables.md"
+  }
+}
