@@ -1,8 +1,5 @@
-matplotlib
 torch
-torchvision
-torch_geometric
-pandas
-seaborn
+numpy
+matplotlib
 tqdm
-scipy
+pytest

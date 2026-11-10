@@ -31,7 +31,7 @@ def grad_weight_cos(model):
     """Gradient-norm-weighted mean over tensors of cos(g, w).
 
     Positive: the gradient points along the weights, so a descent step shrinks them.
-    Negative: a descent step grows the weights. Prieto et al. call steps that mostly
+    Negative: a descent step grows the weights. "Grokking at the Edge of Numerical Stability" (arXiv:2501.04697) calls steps that mostly
     scale the weights up (and so the logits) naive loss minimisation; ⊥AdamW removes them.
     """
     nums, dens = [], []
@@ -67,3 +67,47 @@ def grok_summary(steps, train_acc, val_acc, thresh=0.99):
         "final_train_acc": train_acc[-1] if train_acc else None,
         "final_val_acc": val_acc[-1] if val_acc else None,
     }
+
+
+def optimizer_state_bytes(optimizer):
+    """Bytes held in the optimiser's persistent per-parameter state tensors (Adam: 2 buffers, Lion: 1)."""
+    return int(sum(v.numel() * v.element_size() for st in optimizer.state.values()
+                   for v in st.values() if torch.is_tensor(v) and v.dim() > 0))
+
+
+def unified_metrics(steps, train_acc, val_acc, every=10, thresholds=(0.95, 0.99), consec=3):
+    """Metrics of the unified study, for each threshold (None = not reached within the budget).
+
+    first      first epoch-end with acc >= thr (evaluated every epoch = 10 steps)
+    consec3    start of the first run of `consec` evaluations in a row >= thr, evaluations taken
+               every `every` epochs (= every 100 steps), as in the Lion / EGD protocols
+    sustained  first step after which acc stays >= thr to the end of the run
+    min_after  lowest val acc after `consec3` (stability after grokking)
+    """
+    out = {}
+    sub = list(range(0, len(steps), every))
+    for thr in thresholds:
+        k = f"{int(round(thr * 100))}"
+        first = lambda xs: next((s for s, a in zip(steps, xs) if a >= thr), None)
+        run, c3, c3_idx = 0, None, None
+        for j in sub:
+            run = run + 1 if val_acc[j] >= thr else 0
+            if run == consec:
+                c3_idx = sub[sub.index(j) - consec + 1]
+                c3 = steps[c3_idx]
+                break
+        sustained = None
+        for s, a in zip(reversed(steps), reversed(val_acc)):
+            if a < thr:
+                break
+            sustained = s
+        out[f"train{k}_first"] = first(train_acc)
+        out[f"val{k}_first"] = first(val_acc)
+        out[f"val{k}_consec3"] = c3
+        out[f"val{k}_sustained"] = sustained
+        out[f"val{k}_min_after"] = min(val_acc[c3_idx:]) if c3_idx is not None else None
+    n = len(val_acc)
+    tail = val_acc[max(0, n - n // 10):]  # last 10% of the run
+    out["final_val_acc"] = val_acc[-1] if val_acc else None
+    out["tail10_mean_val_acc"] = sum(tail) / len(tail) if tail else None
+    return out

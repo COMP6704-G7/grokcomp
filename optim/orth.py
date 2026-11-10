@@ -1,7 +1,6 @@
 """⊥AdamW: AdamW on gradients projected orthogonal to the weights.
 
-Prieto et al., "Grokking at the Edge of Numerical Stability", ICLR 2025 (arXiv:2501.04697).
-Reference code: github.com/LucasPrietoAl/grokking-at-the-edge-of-numerical-stability/blob/main/orthograd.py
+"Grokking at the Edge of Numerical Stability", ICLR 2025 (arXiv:2501.04697).
 
 Once the training set is fitted, the gradient lines up with the weights themselves
 ("naive loss minimisation"): following it only scales the logits up, which lowers the loss

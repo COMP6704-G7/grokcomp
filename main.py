@@ -13,9 +13,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from grokfast import *
 from losses import cross_entropy, softmax_collapse_fraction
-from metrics import grad_weight_cos, grok_summary, spectral_norm_max, weight_norm
+from fpd import FPD, add_args as fpd_add_args
+from metrics import (grad_weight_cos, grok_summary, optimizer_state_bytes, spectral_norm_max,
+                     unified_metrics, weight_norm)
 from optim import build_optimizer
 
 
@@ -99,6 +100,8 @@ def main(args):
     if args.device == "auto":
         args.device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(args.device)
+    if device.type == "cuda":  # peak memory of this process only, so parallel runs do not mix
+        torch.cuda.reset_peak_memory_stats(device)
     os.makedirs("results", exist_ok=True)
 
     # tokens for <op> and <=>. It's not clear why <=> is needed at all since it
@@ -107,7 +110,7 @@ def main(args):
     eq_token = args.p
     op_token = args.p + 1
 
-    # "We trained a standard decoder-only transformer (Vaswani et al., 2017)
+    # "We trained a standard decoder-only transformer ("Attention Is All You Need", 2017)
     # with causal attention masking, and calculated loss and accuracy only on
     # the answer part of the equation. For all experiments we used a
     # transformer with 2 layers, width 128, and 4 attention heads"
@@ -127,8 +130,10 @@ def main(args):
 
     # For most experiments we used AdamW optimizer with learning rate 10−3,
     # weight decay 1, β1 = 0.9, β2 = 0.98
+    # FPD (branch fpd) runs its base optimiser plus periodic shrink-and-restore cycles.
+    fpd = FPD(model, train_data, args)
     optimizer = build_optimizer(
-        args.optimizer,
+        fpd.base_optimizer,
         model.parameters(),
         lr=args.lr,
         weight_decay=args.weight_decay,
@@ -137,6 +142,9 @@ def main(args):
         scope=args.orth_scope,
         rescale=not args.orth_no_rescale,
         skip_1d=args.orth_skip_1d,
+        momentum=args.momentum,
+        rank=args.egd_rank,
+        egd_params=[w for b in model.layers for w in (b.mlp[0].weight, b.mlp[2].weight)],
     )
 
     #  linear learning rate warmup over the first 10 updates
@@ -147,7 +155,6 @@ def main(args):
     steps_per_epoch = math.ceil(train_data.shape[1] / args.batch_size)
 
     its, train_acc, val_acc, train_loss, val_loss = [], [], [], [], []
-    grads = None
     i = 0
 
     # For logging network weights.
@@ -190,20 +197,6 @@ def main(args):
                     model.zero_grad()
                     loss.backward()
 
-                    #######
-
-                    trigger = i < 500 if args.two_stage else False
-
-                    if args.filter == "none":
-                        pass
-                    elif args.filter == "ma":
-                        grads = gradfilter_ma(model, grads=grads, window_size=args.window_size, lamb=args.lamb, trigger=trigger)
-                    elif args.filter == "ema":
-                        grads = gradfilter_ema(model, grads=grads, alpha=args.alpha, lamb=args.lamb)
-                    else:
-                        raise ValueError(f"Invalid gradient filter type `{args.filter}`")
-
-                    #######
 
                     if diag:
                         # measured for every optimiser, before any projection inside step()
@@ -213,6 +206,7 @@ def main(args):
                     optimizer.step()
                     scheduler.step()
                     i += 1
+                    fpd.step(i, train_acc)
 
                 total_acc += (logits[-1].argmax(-1) == input[-1]).double().sum()
 
@@ -274,6 +268,7 @@ def main(args):
                 'train_loss': train_loss,
                 'val_acc': val_acc,
                 'val_loss': val_loss,
+                'fpd': fpd.history,
             }
 
             if args.save_weights:
@@ -291,6 +286,17 @@ def main(args):
     summary = grok_summary(its, train_acc, val_acc, thresh=args.thresh)
     summary.update({"label": args.label, "steps_run": i, "wall_sec": time.time() - t_start,
                     "sec_per_step": (time.time() - t_start) / max(i, 1), "args": vars(args)})
+    # Unified study: both thresholds, first-hit / 3-in-a-row (every 100 steps) / sustained,
+    # post-grok minimum, optimiser state size and FPD's extra full-batch passes.
+    summary["unified"] = unified_metrics(its, train_acc, val_acc, every=args.log_every)
+    summary["optimizer_state_bytes"] = optimizer_state_bytes(optimizer)
+    cuda = device.type == "cuda"
+    summary["peak_gpu_mem_allocated_bytes"] = torch.cuda.max_memory_allocated(device) if cuda else None
+    summary["peak_gpu_mem_reserved_bytes"] = torch.cuda.max_memory_reserved(device) if cuda else None
+    summary["fpd_cycles"] = len(fpd.history)
+    summary["fpd_extra_fullbatch_passes"] = len(fpd.history) * (args.fpd_steps + 3)
+    if fpd.history:
+        summary["fpd_last"] = fpd.history[-1]
     with open(f"results/summary_{args.label}.json", "w") as f:
         json.dump(summary, f, indent=2)
     print(json.dumps({k: summary[k] for k in ("fit_step", "grok_step", "sustained_step", "delay", "final_val_acc")}))
@@ -309,17 +315,9 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=0)
     parser.add_argument("--optimizer", default="Adam")
 
-    # Grokfast
-    parser.add_argument("--filter", type=str, choices=["none", "ma", "ema", "fir"], default="none")
-    parser.add_argument("--alpha", type=float, default=0.99)
-    parser.add_argument("--window_size", type=int, default=100)
-    parser.add_argument("--lamb", type=float, default=5.0)
-
-    # Ablation studies
-    parser.add_argument("--two_stage", action='store_true')
     parser.add_argument("--save_weights", action='store_true')
 
-    # Shared setup (Group 7)
+    # Shared setup
     parser.add_argument("--device", default="auto", help="auto, cuda, cuda:1, mps or cpu")
     parser.add_argument("--train_frac", type=float, default=0.5)
     parser.add_argument("--adam_eps", type=float, default=1e-8)
@@ -329,36 +327,23 @@ if __name__ == "__main__":
                         help="stop once val acc has stayed >= thresh this many epochs (0 = run full budget)")
     parser.add_argument("--raw_label", action="store_true", help="use --label as given, no automatic suffix")
 
-    # ⊥AdamW + StableMax (Prieto et al. 2025)
+    # ⊥AdamW + StableMax ("Grokking at the Edge of Numerical Stability", arXiv:2501.04697)
     parser.add_argument("--loss", choices=["softmax", "stablemax"], default="softmax")
     parser.add_argument("--loss_dtype", choices=["float16", "float32", "float64"], default="float32")
     parser.add_argument("--orth_scope", choices=["tensor", "global"], default="tensor")
     parser.add_argument("--orth_no_rescale", action="store_true")
     parser.add_argument("--orth_skip_1d", action="store_true")
+
+    # EGD ("Egalitarian Gradient Descent", arXiv:2510.04930)
+    parser.add_argument("--momentum", type=float, default=0.0, help="EGD / SGD heavy-ball momentum")
+    parser.add_argument("--egd_rank", type=int, default=None, help="EGD randomized-SVD rank (default: full SVD)")
+
+    # FPD: --optimizer FPD = AdamW + Function-Preserving Decay cycles (fpd.py)
+    fpd_add_args(parser)
     args = parser.parse_args()
 
-    filter_str = ('_' if args.label != '' else '') + args.filter
-    window_size_str = f'_w{args.window_size}'
-    alpha_str = f'_a{args.alpha:.3f}'.replace('.', '')
-    lamb_str = f'_l{int(args.lamb)}'
-
-    if args.filter == 'none':
-        filter_suffix = ''
-    elif args.filter == 'ma':
-        filter_suffix = window_size_str + lamb_str
-    elif args.filter == 'ema':
-        filter_suffix = alpha_str + lamb_str
-    else:
-        raise ValueError(f"Unrecognized filter type {args.filter}")
-
-    optim_suffix = ''
-    if args.weight_decay != 0:
-        optim_suffix = optim_suffix + f'_wd{args.weight_decay:.1e}'.replace('.', '')
-    if args.lr != 1e-3:
-        optim_suffix = optim_suffix + f'_lrx{int(args.lr / 1e-3)}'
-
     if not args.raw_label:
-        args.label = args.label + filter_str + filter_suffix + optim_suffix
+        args.label = args.label or f"{args.optimizer}_lr{args.lr:g}_wd{args.weight_decay:g}_s{args.seed}"
     print(f'Experiment results saved under name: {args.label}')
 
     main(args)

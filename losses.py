@@ -1,6 +1,6 @@
 """Softmax and StableMax cross-entropy, computed in a chosen float precision.
 
-StableMax (Prieto et al., ICLR 2025) replaces exp in the softmax with
+StableMax ("Grokking at the Edge of Numerical Stability", arXiv:2501.04697) replaces exp in the softmax with
     s(x) = x + 1         for x >= 0
     s(x) = 1 / (1 - x)   for x <  0
 which grows linearly instead of exponentially, so large logits cannot push the
@@ -44,6 +44,6 @@ def cross_entropy(logits, targets, kind="softmax", dtype="float32"):
 @torch.no_grad()
 def softmax_collapse_fraction(logits, targets):
     """Share of samples whose float32 softmax loss is exactly 0, i.e. no gradient flows from them.
-    This is the Softmax Collapse measure from Prieto et al."""
+    This is the Softmax Collapse measure from arXiv:2501.04697."""
     logp = F.log_softmax(logits.float(), dim=-1).gather(-1, targets[:, None].to(logits.device))
     return (logp == 0).float().mean().item()
